@@ -33,6 +33,13 @@ async function run() {
       name: "test/count",
       type: "int",
     },
+    {
+      _id: "_predicate",
+      name: "test/user",
+      type: "ref",
+      multi: false,
+      restrictCollection: "_user",
+    },
   ];
 
   const addSchemaResults = await fetch(
@@ -47,9 +54,14 @@ async function run() {
   //add data
   const data = [
     {
+      _id: "_user$jake",
+      username: "jake",
+    },
+    {
       _id: "test$first",
       "test/description": "first test",
       "test/count": 0,
+      "test/user": "_user$jake",
     },
     {
       _id: "test$second",
@@ -78,10 +90,11 @@ async function run() {
     where: [
       ["?t", "test/description", "?description"],
       ["?t", "test/count", "?count"],
+      ["?t", "test/user", "?username"],
     ],
-    select: { "?t": ["description", "count"] },
-    opts: {
-      orderBy: ["DESC", "?count"],
+    select: { "?t": ["description", "count", "user"] },
+    vars: {
+      "?username": ["_user/username", "jake"],
     },
   };
   const results = await fetch(`http://localhost:8090/fdb/${ledgerName}/query`, {
@@ -90,8 +103,11 @@ async function run() {
   });
 
   console.log("status: ", results.status);
-  console.log(await results.json());
-  if (results.status === 200) {
+
+  const resultsData = await results.json();
+  console.log(resultsData);
+
+  if (resultsData.length > 0) {
     process.exit(0);
   } else {
     process.exit(1);
